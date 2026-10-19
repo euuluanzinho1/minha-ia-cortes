@@ -59,9 +59,11 @@ async function getEngine(){
  if(engine)return engine;
  if(!window.FFmpeg)throw Error('O motor não carregou. Verifique a internet e recarregue a página.');
  const {createFFmpeg}=FFmpeg;
- engine=createFFmpeg({
+engine=createFFmpeg({
   log:false,
-  corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+  mainName:'main',
+  corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
+});
  });
  engine.setProgress(({ratio})=>{
   progress.value=Math.max(0,Math.min(1,ratio||0));
