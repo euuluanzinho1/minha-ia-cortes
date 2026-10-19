@@ -6,107 +6,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Luan AI Clips</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#0b0b12;color:#fff;font-family:Arial,sans-serif;padding:20px}
-header{text-align:center;margin:18px 0 28px}
-.logo{font-size:30px;font-weight:bold;color:#a78bfa}
-p{color:#aaa;line-height:1.5}
+body{margin:0;background:#0c0c14;color:white;font-family:Arial;padding:20px}
 main{max-width:520px;margin:auto}
-.card{background:#171722;border:1px solid #303044;border-radius:18px;padding:18px;margin-bottom:16px}
-h2{font-size:18px;margin-top:0}
-label{display:block;margin:15px 0 8px;color:#ddd}
-input,select,button{width:100%;padding:13px;border-radius:10px;font-size:15px}
-input,select{background:#242435;color:white;border:1px solid #44445a}
-button{border:0;background:#8b5cf6;color:white;font-weight:bold;margin-top:16px}
-button:active{opacity:.8}
-#preview{width:100%;margin-top:12px;border-radius:12px;display:none}
-#status{white-space:pre-wrap;color:#c4b5fd}
-small{color:#aaa}
+h1{color:#a78bfa;text-align:center}
+.card{background:#191925;border:1px solid #38384b;border-radius:16px;padding:18px;margin:16px 0}
+input,select,button{box-sizing:border-box;width:100%;padding:13px;margin:8px 0;border-radius:9px}
+input,select{background:#29293a;color:white;border:1px solid #555}
+button{background:#8b5cf6;color:white;border:0;font-weight:bold}
+p{color:#c7c7d4;line-height:1.5}
+a{color:#c4b5fd;display:block;margin:12px 0}
 </style>
 </head>
 <body>
 <main>
-<header>
-<div class="logo">✂ Luan AI Clips</div>
-<p>Transforme vídeos em cortes para Shorts, Reels e TikTok.</p>
-</header>
+<h1>✂ Luan AI Clips</h1>
+<p style="text-align:center">Cortes de vídeo direto no navegador</p>
 
 <section class="card">
-<h2>🎬 1. Seu vídeo</h2>
-<label for="video">Escolha um arquivo de vídeo</label>
+<h3>1. Escolha seu vídeo</h3>
 <input id="video" type="file" accept="video/*">
-<video id="preview" controls playsinline></video>
-<label for="link">Ou cole um link de vídeo</label>
-<input id="link" type="url" placeholder="https://...">
-<small>Links serão integrados ao processamento numa próxima etapa.</small>
-</section>
-
-<section class="card">
-<h2>⚙️ 2. Configurar cortes</h2>
 <label for="duration">Duração de cada corte</label>
 <select id="duration">
 <option value="15">15 segundos</option>
 <option value="30" selected>30 segundos</option>
 <option value="60">60 segundos</option>
 </select>
-
-<label for="format">Formato de vídeo</label>
-<select id="format">
-<option value="9:16">Vertical 9:16 — Shorts/Reels</option>
-<option value="1:1">Quadrado 1:1</option>
-<option value="16:9">Horizontal 16:9</option>
-</select>
-
-<label for="style">Estilo das legendas</label>
-<select id="style">
-<option value="classic">Clássico branco</option>
-<option value="viral">Viral — destaque amarelo</option>
-<option value="simple">Simples e discreto</option>
-</select>
-
-<button id="generate">Preparar cortes</button>
-<p id="status">Seu projeto está pronto para receber um vídeo.</p>
+<button id="start">Gerar cortes MP4</button>
+<p id="status">Selecione um vídeo para começar.</p>
+<progress id="progress" value="0" max="1" style="width:100%"></progress>
+<div id="results"></div>
 </section>
 
 <section class="card">
-<h2>🚀 Próximas funções</h2>
-<p>• IA para encontrar os melhores momentos</p>
-<p>• Legendas automáticas sincronizadas</p>
-<p>• Cortes verticais com enquadramento inteligente</p>
-<p>• Exportação dos clipes em MP4</p>
+<h3>O que esta versão faz</h3>
+<p>✓ Divide um vídeo em trechos consecutivos.</p>
+<p>✓ Exporta os trechos em MP4, se o motor suportar o formato.</p>
+<p>✓ Permite baixar cada corte.</p>
+<p>As legendas automáticas, a análise inteligente e o formato vertical serão implementados depois.</p>
 </section>
 </main>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <script>
-const input=document.getElementById('video');
-const preview=document.getElementById('preview');
+const fileInput=document.getElementById('video');
 const status=document.getElementById('status');
-let videoURL;
-input.addEventListener('change',()=>{
- if(videoURL)URL.revokeObjectURL(videoURL);
- const file=input.files[0];
- if(!file)return;
- videoURL=URL.createObjectURL(file);
- preview.src=videoURL;
- preview.style.display='block';
- status.textContent='Vídeo carregado: '+file.name;
-});
-document.getElementById('generate').addEventListener('click',()=>{
- const file=input.files[0];
- const link=document.getElementById('link').value.trim();
- if(!file&&!link){
-  status.textContent='Escolha um vídeo para começar.';
+const progress=document.getElementById('progress');
+const results=document.getElementById('results');
+let engine=null;
+let busy=false;
+
+async function getEngine(){
+ if(engine)return engine;
+ if(!window.FFmpeg)throw Error('O motor não carregou. Verifique a internet e recarregue a página.');
+ const {createFFmpeg}=FFmpeg;
+ engine=createFFmpeg({
+  log:false,
+  corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+ });
+ engine.setProgress(({ratio})=>{
+  progress.value=Math.max(0,Math.min(1,ratio||0));
+ });
+ status.textContent='Baixando e iniciando o motor de vídeo...';
+ await engine.load();
+ return engine;
+}
+
+document.getElementById('start').onclick=async()=>{
+ if(busy)return;
+ const file=fileInput.files[0];
+ if(!file){status.textContent='Escolha um vídeo primeiro.';return;}
+ if(file.size>150*1024*1024){
+  status.textContent='Para este teste, use um vídeo menor que 150 MB.';
   return;
  }
- if(!file){
-  status.textContent='Link recebido. A importação de links será implementada na próxima etapa.';
-  return;
+ busy=true;
+ const button=document.getElementById('start');
+ button.disabled=true;
+ results.replaceChildren();
+ progress.value=0;
+ try{
+  const ff=await getEngine();
+  const {fetchFile}=FFmpeg;
+  const inputName='entrada.mp4';
+  ff.FS('writeFile',inputName,await fetchFile(file));
+
+  const metadata=document.createElement('video');
+  metadata.preload='metadata';
+  const duration=await new Promise((resolve,reject)=>{
+   metadata.onloadedmetadata=()=>resolve(metadata.duration);
+   metadata.onerror=()=>reject(Error('Não foi possível ler a duração do vídeo.'));
+   metadata.src=URL.createObjectURL(file);
+  });
+  URL.revokeObjectURL(metadata.src);
+
+  if(!Number.isFinite(duration)||duration<=0)
+   throw Error('A duração do vídeo é inválida.');
+
+  const segment=Number(document.getElementById('duration').value);
+  const total=Math.ceil(duration/segment);
+  if(total>40)throw Error('Este teste permite até 40 cortes por vídeo.');
+
+  for(let i=0;i<total;i++){
+   const start=i*segment;
+   const length=Math.min(segment,duration-start);
+   const output=`corte_${String(i+1).padStart(2,'0')}.mp4`;
+   status.textContent=`Gerando corte ${i+1} de ${total}. Não feche a página.`;
+   await ff.run(
+    '-ss',String(start),
+    '-i',inputName,
+    '-t',String(length),
+    '-map','0:v:0',
+    '-map','0:a?',
+    '-c:v','libx264',
+    '-preset','ultrafast',
+    '-c:a','aac',
+    '-movflags','+faststart',
+    output
+   );
+   const data=ff.FS('readFile',output);
+   const url=URL.createObjectURL(
+    new Blob([data],{type:'video/mp4'})
+   );
+   const link=document.createElement('a');
+   link.href=url;
+   link.download=output;
+   link.textContent=`⬇ Baixar corte ${i+1}`;
+   results.appendChild(link);
+   ff.FS('unlink',output);
+  }
+  ff.FS('unlink',inputName);
+  status.textContent=`Concluído! ${total} corte(s) gerado(s).`;
+ }catch(error){
+  console.error(error);
+  status.textContent='Não foi possível processar: '+error.message+
+   '. Tente outro vídeo menor ou recarregue a página.';
+ }finally{
+  busy=false;
+  button.disabled=false;
  }
- status.textContent='Vídeo selecionado! Duração desejada: '+
- document.getElementById('duration').value+' segundos.\nFormato: '+
- document.getElementById('format').value+
- '.\nEsta versão ainda não processa cortes automaticamente.';
-});
+};
 </script>
 </body>
 </html>
-
