@@ -1,1 +1,112 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luan AI Clips</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b12;color:#fff;font-family:Arial,sans-serif;padding:20px}
+header{text-align:center;margin:18px 0 28px}
+.logo{font-size:30px;font-weight:bold;color:#a78bfa}
+p{color:#aaa;line-height:1.5}
+main{max-width:520px;margin:auto}
+.card{background:#171722;border:1px solid #303044;border-radius:18px;padding:18px;margin-bottom:16px}
+h2{font-size:18px;margin-top:0}
+label{display:block;margin:15px 0 8px;color:#ddd}
+input,select,button{width:100%;padding:13px;border-radius:10px;font-size:15px}
+input,select{background:#242435;color:white;border:1px solid #44445a}
+button{border:0;background:#8b5cf6;color:white;font-weight:bold;margin-top:16px}
+button:active{opacity:.8}
+#preview{width:100%;margin-top:12px;border-radius:12px;display:none}
+#status{white-space:pre-wrap;color:#c4b5fd}
+small{color:#aaa}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="logo">✂ Luan AI Clips</div>
+<p>Transforme vídeos em cortes para Shorts, Reels e TikTok.</p>
+</header>
+
+<section class="card">
+<h2>🎬 1. Seu vídeo</h2>
+<label for="video">Escolha um arquivo de vídeo</label>
+<input id="video" type="file" accept="video/*">
+<video id="preview" controls playsinline></video>
+<label for="link">Ou cole um link de vídeo</label>
+<input id="link" type="url" placeholder="https://...">
+<small>Links serão integrados ao processamento numa próxima etapa.</small>
+</section>
+
+<section class="card">
+<h2>⚙️ 2. Configurar cortes</h2>
+<label for="duration">Duração de cada corte</label>
+<select id="duration">
+<option value="15">15 segundos</option>
+<option value="30" selected>30 segundos</option>
+<option value="60">60 segundos</option>
+</select>
+
+<label for="format">Formato de vídeo</label>
+<select id="format">
+<option value="9:16">Vertical 9:16 — Shorts/Reels</option>
+<option value="1:1">Quadrado 1:1</option>
+<option value="16:9">Horizontal 16:9</option>
+</select>
+
+<label for="style">Estilo das legendas</label>
+<select id="style">
+<option value="classic">Clássico branco</option>
+<option value="viral">Viral — destaque amarelo</option>
+<option value="simple">Simples e discreto</option>
+</select>
+
+<button id="generate">Preparar cortes</button>
+<p id="status">Seu projeto está pronto para receber um vídeo.</p>
+</section>
+
+<section class="card">
+<h2>🚀 Próximas funções</h2>
+<p>• IA para encontrar os melhores momentos</p>
+<p>• Legendas automáticas sincronizadas</p>
+<p>• Cortes verticais com enquadramento inteligente</p>
+<p>• Exportação dos clipes em MP4</p>
+</section>
+</main>
+<script>
+const input=document.getElementById('video');
+const preview=document.getElementById('preview');
+const status=document.getElementById('status');
+let videoURL;
+input.addEventListener('change',()=>{
+ if(videoURL)URL.revokeObjectURL(videoURL);
+ const file=input.files[0];
+ if(!file)return;
+ videoURL=URL.createObjectURL(file);
+ preview.src=videoURL;
+ preview.style.display='block';
+ status.textContent='Vídeo carregado: '+file.name;
+});
+document.getElementById('generate').addEventListener('click',()=>{
+ const file=input.files[0];
+ const link=document.getElementById('link').value.trim();
+ if(!file&&!link){
+  status.textContent='Escolha um vídeo para começar.';
+  return;
+ }
+ if(!file){
+  status.textContent='Link recebido. A importação de links será implementada na próxima etapa.';
+  return;
+ }
+ status.textContent='Vídeo selecionado! Duração desejada: '+
+ document.getElementById('duration').value+' segundos.\nFormato: '+
+ document.getElementById('format').value+
+ '.\nEsta versão ainda não processa cortes automaticamente.';
+});
+</script>
+</body>
+</html>
+
