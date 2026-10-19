@@ -58,19 +58,37 @@ let busy=false;
 async function getEngine(){
  if(engine)return engine;
  if(!window.FFmpeg)throw Error('O motor não carregou. Verifique a internet e recarregue a página.');
- const {createFFmpeg}=FFmpeg;
-engine=createFFmpeg({
-  log:false,
-  mainName:'main',
-  corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
-});
- });
- engine.setProgress(({ratio})=>{
-  progress.value=Math.max(0,Math.min(1,ratio||0));
- });
- status.textContent='Baixando e iniciando o motor de vídeo...';
- await engine.load();
- return engine;
+
+async function getEngine(){
+  if(engine) return engine;
+
+  if(!window.FFmpeg){
+    throw new Error(
+      'FFmpeg não carregou. Verifique a internet.'
+    );
+  }
+
+  const {createFFmpeg} = FFmpeg;
+
+  engine = createFFmpeg({
+    log: true,
+    corePath:
+      'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+  });
+
+  engine.setProgress(({ratio}) => {
+    progress.value = Math.max(
+      0,
+      Math.min(1, ratio || 0)
+    );
+  });
+
+  status.textContent = 'Carregando motor de vídeo...';
+  await engine.load();
+
+  return engine;
+}
+
 }
 
 document.getElementById('start').onclick=async()=>{
